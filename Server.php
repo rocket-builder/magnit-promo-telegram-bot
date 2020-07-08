@@ -27,6 +27,7 @@ include('vendor/autoload.php'); //Подключаем библиотеку
           $telegram->sendMessage($chat_id, $first_name . '! Как дела?' ); // Спрашивает как дела
         }
       }
+      
     }
   }
 ?>
