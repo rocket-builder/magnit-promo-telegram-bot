@@ -3,31 +3,15 @@ include('vendor/autoload.php'); //Подключаем библиотеку
   use Telegram\Bot\Api;
   require 'Config.php';
 
-  $telegram = new Api(Config::BOT_TOKEN); //Устанавливаем токен, полученный у BotFather
-  //$result = $telegram -> getWebhookUpdates(); //Передаем в переменную $result полную информацию о сообщении пользователя
+  $file = file_get_contents('https://api.tlgr.org/bot'.Config::BOT_TOKEN.'/getUpdates');
 
-  while (true) {
-    sleep(2);
-    $updates = $telegram->getUpdates(); // Получаем обновление, методом getUpdates
+  $updates = json_decode($file)->result;
+  foreach ($updates as $update) {
 
-    foreach ($updates as $update){
+    $chat_id = $update->message->chat->id;
 
-      $update = json_decode($update);
-
-      if (isset($update->message->text)) { // Проверяем Update, на наличие текста
-        $text = $update->message->text; // Переменная с текстом сообщения
-        $chat_id = $update->message->chat->id; // Чат ID пользователя
-        $first_name = $update->message->from->first_name; //Имя пользователя
-
-        print_r("chat ".$chat_id." name ".$first_name." message ".$text."\n");
-
-        if ($text == '/start'){ // Если пользователь подключился в первый раз, ему поступит приветствие
-        $telegram->sendMessage($chat_id, 'Привет'. ' ' . $first_name . '!'); //Приветствует Пользователя
-        } else {
-          $telegram->sendMessage($chat_id, $first_name . '! Как дела?' ); // Спрашивает как дела
-        }
-      }
-      
-    }
+    $messsage = file_get_contents('https://api.tlgr.org/bot'.Config::BOT_TOKEN.'/sendMessage?chat_id='.$chat_id.'&text='.'hello');
+    var_dump($messsage);
   }
+  var_dump($updates);
 ?>
