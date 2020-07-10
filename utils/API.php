@@ -33,12 +33,8 @@ class Telegram {
     ]);
   }
 
-  public function getUpdates($timeout, $offset = 0) {
-    return $this->api('getUpdates', [
-      'offset' => $offset,
-      'timeout' => $timeout
-    ]);
+  public function getUpdates($offset) {
+    return $this->api('getUpdates', ['offset' => $offset]);
   }
-
 }
 ?>

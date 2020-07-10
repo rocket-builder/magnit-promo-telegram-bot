@@ -2,33 +2,28 @@
 require 'Config.php';
 require 'utils/API.php';
 
-  // $file = file_get_contents('https://api.tlgr.org/bot'.Config::BOT_TOKEN.'/getUpdates');
-  //
-  // $updates = json_decode($file)->result;
-  // foreach ($updates as $update) {
-  //
-  //   $chat_id = $update->message->chat->id;
-  //
-  //   $messsage = file_get_contents('https://api.tlgr.org/bot'.Config::BOT_TOKEN.'/sendMessage?chat_id='.$chat_id.'&text='.'hello');
-  //   var_dump($messsage);
-  // }
-  // var_dump($updates);
-
   $telegram = new Telegram(Config::BOT_TOKEN);
 
   while (true) {
-    if(!is_null($updates)) {
+    sleep(2);
 
-        $updates = array_diff($updates, $telegram->getUpdates(1));
-    } else {
-      $updates = $telegram->getUpdates(1);
+    $updates = $telegram->getUpdates(); // Получаем обновление, методом getUpdates
+    foreach ($updates as $update){
+      if (isset($update->message->text)) { // Проверяем Update, на наличие текста
+
+        $text = $update->message->text; // Переменная с текстом сообщения
+        $chat_id = $update->message->chat->id; // Чат ID пользователя
+        $first_name = $update->message->chat->first_name; //Имя пользователя
+
+        print_r($chat_id);
+        if ($text == '/start') { // Если пользователь подключился в первый раз, ему поступит приветствие
+          $telegram->sendMessage($chat_id, 'Привет'. ' ' . $first_name . '!');
+        } else {
+          $telegram->sendMessage($chat_id, $first_name . '! Как дела?' );
+        }
+
+      }
     }
-    // foreach ($updates as $update) {
-    //
-    //   //$messsage = $telegram->sendMessage($update->message->chat->id, "hello from telegram api");
-    //   //var_dump($messsage);
-    // }
 
-    var_dump($updates);
   }
 ?>
