@@ -16,8 +16,6 @@ require 'utils/API.php';
 
   $telegram = new Telegram(Config::BOT_TOKEN);
 
-
-
   while (true) {
     if(!is_null($updates)) {
 
