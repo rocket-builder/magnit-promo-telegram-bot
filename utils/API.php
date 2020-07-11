@@ -26,15 +26,16 @@ class Telegram {
       return $res->result;
   }
 
-  public function sendMessage($chat_id, $text) {
-    return $this->api('sendMessage', [
-      'chat_id' => $chat_id,
-      'text' => $text
-    ]);
+  public function sendMessage($params = []) {
+    return $this->api('sendMessage', $params);
   }
 
-  public function getUpdates($offset) {
-    return $this->api('getUpdates', ['offset' => $offset]);
+  public function getUpdates($params = []) {
+    return $this->api('getUpdates', $params);
+  }
+
+  public function replyKeyboardMarkup($params = []) {
+      return $this->api('replyKeyboardMarkup', $params);
   }
 }
 ?>
