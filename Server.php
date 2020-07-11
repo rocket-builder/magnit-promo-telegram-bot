@@ -17,7 +17,9 @@ while (true) {
 
 	$update = $telegram->getupdates(@$update['update_id'] + 1);
 
-  if (isset($update['message'])) {
+  if (isset($update['message']) && !isset($update['callback_query'])) {
+
+      var_dump($update);
 
       switch ($update['message']['text']) {
         case '/start':
@@ -37,30 +39,26 @@ while (true) {
 
           $regions = R::getAll('select title from region inner join promo on region.id = promo.region_id and promo.use_date is null group by title');
 
-          $rg_count = count($regions);
-          if($rg_count > 0) {
+          if(count($regions) > 0) {
 
-            $keys = [];
+            $keys = [
+              "keyboard" => [[]],
+              "resize_keyboard" => true,
+              "one_time_keyboard" => false
+            ];
+
+            $keys['keyboard'][0][0] = [ 'text' => 'Главное меню', 'callback_data' => 'Главное меню' ];
             foreach ($regions as $region) {
-              array_push($keys, [ {'text': $region['title']} ]);
+              array_push($keys['keyboard'][0], [ 'text' => $region['title'], 'callback_data' => $region['title']]);
             }
-            $keys[$rg_count] = [ {'text': 'Главное меню'} ];
 
             var_dump($keys);
-            // $telegram->api("sendMessage", array(
-            //    'chat_id' => $update['message']['chat']['id'],
-            //    'text' => 'л',
-            //    'reply_markup' => json_encode([
-            //      "remove_keyboard" => true
-            //    ])
-            // ));
+
 
             $telegram->api("sendMessage", array(
                'chat_id' => $update['message']['chat']['id'],
                'text' => 'Выберете регион',
-               'reply_markup' => json_encode([
-                 "inline_keyboard" => $keys
-               ])
+               'reply_markup' => json_encode($keys)
             ));
 
           } else
@@ -106,7 +104,13 @@ while (true) {
           ]);
           break;
 
+
+        case 'button_0':
+          echo "\nhello from callback";
+          break;
+
         default:
+
 
           $telegram->api('sendMessage', [
             'chat_id' => $update['message']['chat']['id'],
@@ -115,6 +119,19 @@ while (true) {
           break;
       }
 
+  } else {
+    var_dump($update);
   }
+  // if(isset($update['callback_query'])) {
+  //
+  //   var_dump($update);
+  //   // $callback_data = $update['callback_query']['data'];
+  //   //
+  //   // $telegram->api("sendMessage", array(
+  //   //    'chat_id' => $update['message']['chat']['id'],
+  //   //    'text' => $callback_data
+  //   // ));
+  //
+  // }
 }
 ?>
