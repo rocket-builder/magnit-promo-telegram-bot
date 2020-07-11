@@ -42,19 +42,27 @@ while (true) {
 
             $keys = [];
             foreach ($regions as $region) {
-              array_push($keys, $region['title']);
+              array_push($keys, [ {'text': $region['title']} ]);
             }
-            $keys[$rg_count] = 'Главное меню';
+            $keys[$rg_count] = [ {'text': 'Главное меню'} ];
+
+            var_dump($keys);
+            // $telegram->api("sendMessage", array(
+            //    'chat_id' => $update['message']['chat']['id'],
+            //    'text' => 'л',
+            //    'reply_markup' => json_encode([
+            //      "remove_keyboard" => true
+            //    ])
+            // ));
 
             $telegram->api("sendMessage", array(
                'chat_id' => $update['message']['chat']['id'],
                'text' => 'Выберете регион',
                'reply_markup' => json_encode([
-                 "keyboard" => $keys,
-                 "resize_keyboard" => true,
-                 "one_time_keyboard" => false
+                 "inline_keyboard" => $keys
                ])
             ));
+
           } else
             $telegram->api('sendMessage', [
               'chat_id' => $update['message']['chat']['id'],
