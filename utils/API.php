@@ -34,8 +34,5 @@ class Telegram {
     return $this->api('getUpdates', $params);
   }
 
-  public function replyKeyboardMarkup($params = []) {
-      return $this->api('replyKeyboardMarkup', $params);
-  }
 }
 ?>
