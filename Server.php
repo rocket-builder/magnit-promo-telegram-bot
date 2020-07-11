@@ -2,20 +2,19 @@
 require 'Config.php';
 require 'utils/API.php';
 
-  $telegram = new Telegram(Config::BOT_TOKEN);
 
-  $next_id = $telegram->getUpdates()[count($telegram->getUpdates()) - 1]->update_id + 1;
+$telegram=new Telegram(Config::BOT_TOKEN, Config::BOT_NAME);
 
-  while(true) {
+while (true) {
 
-    sleep(2);
+	$upd = $telegram->getupdates(@$upd['update_id'] + 1);
 
-    $updates = $telegram->getUpdates(['offset' => $next_id]);
-    if(count($updates) > 0) {
+  $update = (object)$upd;
+  if (isset($update->message)) {
 
-        var_dump($updates);
-
-        $next_id++;
-    }
+      // $message = $update->message;
+      // var_dump($messsage);
+      var_dump($update);
   }
+}
 ?>

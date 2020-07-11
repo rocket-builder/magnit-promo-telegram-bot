@@ -1,38 +1,37 @@
 <?php
 
 class Telegram {
+	public function __construct($token, $name)
+	{
+		set_time_limit(0);
+		ignore_user_abort(0);
+		ini_set('max_execution_time', 0); //exec time
+		ini_set('memory_limit', '999999999M'); //memmory limit
+		date_default_timezone_set('Asia/Jakarta'); // timezone
+		define('BOT_TOKEN', $token); // Token
+		define('USERNAME', 'rocket'); // author Username
+		define('BOTNAME', $name); // alias bot Name
+	}
 
-  public $token;
-  public function __construct($token)
-  {
-    $this->token = $token;
-  }
+	public function api($method, $datas = []) {
+		$ch = curl_init();
+		curl_setopt($ch, CURLOPT_URL, 'https://api.telegram.org/bot'.BOT_TOKEN.'/'.$method);
+		curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+		curl_setopt($ch, CURLOPT_POSTFIELDS, $datas);
+		curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
+		$res = curl_exec($ch);
+		curl_close($ch);
 
-  private function curl_get($url, $params) {
+		return json_decode($res, 1);
+		unset($ch,$method,$datas,$res);
+	}
 
-    $url = $url . "?" . http_build_query($params);
-    $curl = curl_init($url);
-    curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
-    $response = curl_exec($curl);
-    curl_close($curl);
+	public function getUpdates($up_id) {
+		$get=$this->api('getupdates', ['offset' => $up_id]);
 
-    return json_decode($response);
-  }
-
-  private function api($method, $params = []) {
-      $res = self::curl_get("https://api.tlgr.org/bot".$this->token ."/". $method, $params);
-
-      return $res->result;
-  }
-
-  public function sendMessage($params = []) {
-    return $this->api('sendMessage', $params);
-  }
-
-  public function getUpdates($params = []) {
-    return $this->api('getUpdates', $params);
-  }
+		return end($get['result']);
+		unset($get,$up_id);
+	}
 
 }
 ?>
