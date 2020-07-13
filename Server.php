@@ -4,6 +4,15 @@ require 'utils/API.php';
 require 'controllers/connection.php';
 
 
+function isRegion($regions,$data)
+{
+  foreach ($regions as $region) {
+    if($region['title'] == $data) return true;
+  }
+  return false;
+}
+
+
 $keyboard = [
     ['Купить', 'Наличие товаров'],
     ['Баланс', 'Личный кабинет'],
@@ -17,9 +26,7 @@ while (true) {
 
 	$update = $telegram->getupdates(@$update['update_id'] + 1);
 
-  if (isset($update['message']) && !isset($update['callback_query'])) {
-
-      var_dump($update);
+  if (isset($update['message'])) {
 
       switch ($update['message']['text']) {
         case '/start':
@@ -37,28 +44,29 @@ while (true) {
 
         case 'Купить':
 
-          $regions = R::getAll('select title from region inner join promo on region.id = promo.region_id and promo.use_date is null group by title');
 
+          $regions = R::getAll('select title from region inner join promo on region.id = promo.region_id and promo.use_date is null group by title');
           if(count($regions) > 0) {
 
-            $keys = [
-              "keyboard" => [[]],
+            $kb =
+            [
+              "keyboard" => [
+                [[
+                  "text" => "Главное меню"
+                ]]
+              ],
               "resize_keyboard" => true,
               "one_time_keyboard" => false
             ];
 
-            $keys['keyboard'][0][0] = [ 'text' => 'Главное меню', 'callback_data' => 'Главное меню' ];
             foreach ($regions as $region) {
-              array_push($keys['keyboard'][0], [ 'text' => $region['title'], 'callback_data' => $region['title']]);
+              array_push($kb['keyboard'], [[ "text" => $region['title'] ]]);
             }
-
-            var_dump($keys);
-
 
             $telegram->api("sendMessage", array(
                'chat_id' => $update['message']['chat']['id'],
                'text' => 'Выберете регион',
-               'reply_markup' => json_encode($keys)
+               'reply_markup' => json_encode($kb)
             ));
 
           } else
@@ -104,23 +112,39 @@ while (true) {
           ]);
           break;
 
+        case 'Главное меню':
 
-        case 'button_0':
-          echo "\nhello from callback";
+          $telegram->api("sendMessage", array(
+             'chat_id' => $update['message']['chat']['id'],
+             'text' => 'Главное меню',
+             'reply_markup' => json_encode([
+               "keyboard" => $keyboard,
+               "resize_keyboard" => true,
+               "one_time_keyboard" => false
+             ])
+          ));
           break;
 
         default:
 
+          if(isset($regions)) {
+            if(isRegion($regions, $update['message']['text'])) {
 
-          $telegram->api('sendMessage', [
-            'chat_id' => $update['message']['chat']['id'],
-            'text' => 'Я не знаю такой команды :('
-          ]);
+              $telegram->api('sendMessage', [
+                'chat_id' => $update['message']['chat']['id'],
+                'text' => 'Принято :)'
+              ]);
+            }
+          }
+
+          else
+            $telegram->api('sendMessage', [
+              'chat_id' => $update['message']['chat']['id'],
+              'text' => 'Я не знаю такой команды :('
+            ]);
           break;
       }
 
-  } else {
-    var_dump($update);
   }
   // if(isset($update['callback_query'])) {
   //
