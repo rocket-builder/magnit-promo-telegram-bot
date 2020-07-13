@@ -130,6 +130,7 @@ while (true) {
           if(isset($regions)) {
             if(isRegion($regions, $update['message']['text'])) {
 
+              //buy promo
               $telegram->api('sendMessage', [
                 'chat_id' => $update['message']['chat']['id'],
                 'text' => 'Принято :)'
