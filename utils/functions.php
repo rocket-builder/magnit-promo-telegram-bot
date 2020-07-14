@@ -15,6 +15,8 @@ function isRegion($regions,$data)
   }
   return false;
 }
+
+
 function isRange($ranges, $data)
 {
   foreach ($ranges as $range) {
@@ -22,8 +24,6 @@ function isRange($ranges, $data)
   }
   return false;
 }
-
-
 function getRangedPromo($arr, $range_start, $range_end)
 {
   $out = [];
@@ -52,14 +52,36 @@ function getRangedPromoArray($promo) {
 
     if(count($prs) > 0) {
       $ind = $i; $t1 = $ind . "р - ";$t2 = $ind+100 . "р";
-      $title = $t1.$t2.', '.count($prs).'шт.';
-      array_push($ranged, [ 'range' => $title, 'content' => $prs]);
+      $price = round(($i*2 + 100) / 4);
+      $title = $t1.$t2.'|'.$price.'р|, в наличии '.count($prs).'шт.';
+
+      array_push($ranged, [ 'range' => $title, 'price' => $price, 'content' => $prs]);
     }
   }
 
   return $ranged;
 }
+function getRangedPromoByRange($promo, $range) {
+  if(isRange($promo, $range)) {
 
+    foreach ($promo as $pr) {
+      if($pr['range'] == $range) return $pr['content'];
+    }
+  } else return null;
+}
+function getRangedPromoPriceByRange($promo, $range) {
+  if(isRange($promo, $range)) {
 
-
+    foreach ($promo as $pr) {
+      if($pr['range'] == $range) return $pr['price'];
+    }
+  } else return null;
+}
+function getMaxPromoFromRange($promo) {
+  $arr = $promo;
+  usort($arr, function($a, $b){
+      return $b->balance <=> $a->balance;
+  });
+  return $arr[0];
+}
 ?>

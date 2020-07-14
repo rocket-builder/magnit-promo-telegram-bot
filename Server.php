@@ -4,6 +4,8 @@ require 'utils/API.php';
 require 'utils/functions.php';
 require 'controllers/connection.php';
 
+$user = null;
+
 $keyboard = [
     ['Купить', 'Наличие товаров'],
     ['Баланс', 'Личный кабинет'],
@@ -21,6 +23,8 @@ while (true) {
 
       switch ($update['message']['text']) {
         case '/start':
+
+           $user = R::findOrCreate('customer', ['telegram_id' => $update['message']['from']['id']]);
 
            $telegram->api("sendMessage", array(
               'chat_id' => $update['message']['chat']['id'],
@@ -161,14 +165,29 @@ while (true) {
               'text' => $mess,
               'reply_markup' => json_encode($kb)
             ]);
-
           } elseif (isset($ranged_promo) && isRange($ranged_promo, $update['message']['text'])) {
+
+            //BUY SINGLE PROMO
+            $sell_promo = getRangedPromoByRange($ranged_promo, $update['message']['text']);
+            $price = getRangedPromoPriceByRange($ranged_promo, $update['message']['text']);
+            $max_promo = getMaxPromoFromRange($sell_promo);
 
             $telegram->api('sendMessage', [
               'chat_id' => $update['message']['chat']['id'],
-              'text' => 'Здесь будет происходить покупка товара '.$update['message']['text']
+              'text' => '*Покупка товара:* '.str_split($update['message']['text'], strpos($update['message']['text'], '|'))[0]."\n".'*Количество товра:* 1шт'."\n".'*К оплате:* '.$price.'р',
+              'reply_markup' => json_encode(
+                  array(
+                  "inline_keyboard" => array(array(array(
+                  "text" => "Купить",
+                  "callback_data" => $max_promo['value']
+                  )))
+                  )
+              ),
+              'parse_mode' => 'Markdown'
             ]);
           }
+
+
           else
             $telegram->api('sendMessage', [
               'chat_id' => $update['message']['chat']['id'],
@@ -177,6 +196,14 @@ while (true) {
           break;
       }
 
+  } elseif (isset($update['callback_query'])) {
+
+    $promo_value = $update['callback_query']['data'];
+
+    $telegram->api('sendMessage', [
+      'chat_id' => $update['message']['chat']['id'],
+      'text' => $promo_value
+    ]);
   }
 }
 ?>
