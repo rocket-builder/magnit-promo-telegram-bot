@@ -1,17 +1,8 @@
 <?php
 require 'Config.php';
 require 'utils/API.php';
+require 'utils/functions.php';
 require 'controllers/connection.php';
-
-
-function isRegion($regions,$data)
-{
-  foreach ($regions as $region) {
-    if($region['title'] == $data) return true;
-  }
-  return false;
-}
-
 
 $keyboard = [
     ['Купить', 'Наличие товаров'],
@@ -78,14 +69,26 @@ while (true) {
 
         case 'Наличие товаров':
 
+          $telegram->api('sendMessage', [
+            'chat_id' => $update['message']['chat']['id'],
+            'text' => 'Скоро появится'
+          ]);
           break;
 
         case 'Баланс':
 
+          $telegram->api('sendMessage', [
+            'chat_id' => $update['message']['chat']['id'],
+            'text' => 'Скоро появится'
+          ]);
           break;
 
         case 'Личный кабинет':
 
+          $telegram->api('sendMessage', [
+            'chat_id' => $update['message']['chat']['id'],
+            'text' => 'Скоро появится'
+          ]);
           break;
 
         case 'Помощь':
@@ -127,14 +130,45 @@ while (true) {
 
         default:
 
-          if(isset($regions)) {
-            if(isRegion($regions, $update['message']['text'])) {
+          //BUY PROMO
+          if(isset($regions) && isRegion($regions, $update['message']['text'])) {
 
-              //buy promo
-              $region = R::findOne('region', ' title = :title', [':title' => $update['message']['text']]);
+            //buy promo
+            $region = R::findOne('region', ' title = :title', [':title' => $update['message']['text']]);
+            $promo = R::find('promo', ' region_id = :region_id and use_date is null', [':region_id' => $region->id]);
+
+            $ranged_promo = getRangedPromoArray($promo);
+
+            $mess = $update['message']['text']."\n";
+            $kb =
+            [
+              "keyboard" => [
+                [[
+                  "text" => "Главное меню"
+                ]]
+              ],
+              "resize_keyboard" => true,
+              "one_time_keyboard" => false
+            ];
+
+            foreach ($ranged_promo as $pr) {
+              $mess.=$pr['range']."\n";
+              array_push($kb['keyboard'],  [[ "text" => $pr['range'] ]]);
             }
-          }
 
+            $telegram->api('sendMessage', [
+              'chat_id' => $update['message']['chat']['id'],
+              'text' => $mess,
+              'reply_markup' => json_encode($kb)
+            ]);
+
+          } elseif (isset($ranged_promo) && isRange($ranged_promo, $update['message']['text'])) {
+
+            $telegram->api('sendMessage', [
+              'chat_id' => $update['message']['chat']['id'],
+              'text' => 'Здесь будет происходить покупка товара '.$update['message']['text']
+            ]);
+          }
           else
             $telegram->api('sendMessage', [
               'chat_id' => $update['message']['chat']['id'],
@@ -144,16 +178,5 @@ while (true) {
       }
 
   }
-  // if(isset($update['callback_query'])) {
-  //
-  //   var_dump($update);
-  //   // $callback_data = $update['callback_query']['data'];
-  //   //
-  //   // $telegram->api("sendMessage", array(
-  //   //    'chat_id' => $update['message']['chat']['id'],
-  //   //    'text' => $callback_data
-  //   // ));
-  //
-  // }
 }
 ?>
