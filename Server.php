@@ -71,10 +71,25 @@ while (true) {
           break;
 
         case 'Наличие товаров':
+          $mess = '*'.$update['message']['text']."*\n";
+
+          $rgs = R::getAll('select region.id from region inner join promo on region.id = promo.region_id and promo.use_date is null group by region.id');
+
+          foreach ($rgs as $rg) {
+            $mess.="\n➖➖➖*".R::load('region', $rg['id'])->title."*➖➖➖\n";
+
+            $prms = R::find('promo', ' region_id = :region_id and use_date is null', [':region_id' => $rg['id']]);
+            $rg_promo = getRangedPromoArray($prms);
+
+            foreach ($rg_promo as $pr) {
+              $mess.=$pr['range']."\n";
+            }
+          }
 
           $telegram->api('sendMessage', [
             'chat_id' => $update['message']['chat']['id'],
-            'text' => 'Скоро появится'
+            'text' => $mess,
+            'parse_mode' => 'Markdown'
           ]);
           break;
 
@@ -95,7 +110,7 @@ while (true) {
           ];
           $telegram->api('sendMessage', [
             'chat_id' => $update['message']['chat']['id'],
-            'text' => 'Ваш баланс составляет '.$user->balance.'рублей',
+            'text' => 'Ваш баланс составляет '.$user->balance.' рублей',
             'reply_markup' => json_encode($kb)
           ]);
           break;

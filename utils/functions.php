@@ -53,7 +53,7 @@ function getRangedPromoArray($promo) {
     if(count($prs) > 0) {
       $ind = $i; $t1 = $ind . "р - ";$t2 = $ind+100 . "р";
       $price = round(($i*2 + 100) / 4);
-      $title = $t1.$t2.'|'.$price.'р|, в наличии '.count($prs).'шт.';
+      $title = $t1.$t2.' | '.$price.' руб/шт |, в наличии '.count($prs).'шт.';
 
       array_push($ranged, [ 'range' => $title, 'price' => $price, 'content' => $prs]);
     }
