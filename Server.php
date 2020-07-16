@@ -102,6 +102,10 @@ while (true) {
 
         case 'Пополнить баланс':
 
+          $telegram->api('sendMessage', [
+            'chat_id' => $update['message']['chat']['id'],
+            'text' => 'Скоро появится'
+          ]);
           break;
 
         case 'Личный кабинет':
