@@ -39,7 +39,6 @@ while (true) {
 
         case 'Купить':
 
-
           $regions = R::getAll('select title from region inner join promo on region.id = promo.region_id and promo.use_date is null group by title');
           if(count($regions) > 0) {
 
@@ -81,17 +80,38 @@ while (true) {
 
         case 'Баланс':
 
+          $kb =
+          [
+            "keyboard" => [
+              [[
+                "text" => "Главное меню"
+              ]],
+              [[
+                "text" => "Пополнить баланс"
+              ]]
+            ],
+            "resize_keyboard" => true,
+            "one_time_keyboard" => false
+          ];
           $telegram->api('sendMessage', [
             'chat_id' => $update['message']['chat']['id'],
-            'text' => 'Скоро появится'
+            'text' => 'Ваш баланс составляет '.$user->balance.'рублей',
+            'reply_markup' => json_encode($kb)
           ]);
+          break;
+
+        case 'Пополнить баланс':
+
           break;
 
         case 'Личный кабинет':
 
+          $user_sum = R::getAll('select sum(cost) as sum from orders where customer_id='.$user->id)[0]['sum'];
+          $mess = "➖➖➖➖➖➖➖➖➖➖\nВаш профиль:\n🕶️ Ваш ID: ".$user->telegram_id."\n👏 Ваш никнейм: @".$update['message']['from']['username']."\n🏦 Ваш текущий баланс: ".$user->balance." руб.\n💥 Покупок на сумму: ".$user_sum." руб.\n➖➖➖➖➖➖➖➖➖➖";
+
           $telegram->api('sendMessage', [
             'chat_id' => $update['message']['chat']['id'],
-            'text' => 'Скоро появится'
+            'text' => $mess
           ]);
           break;
 
@@ -216,8 +236,8 @@ while (true) {
         $url = "https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=".$promo->value;
 
         //update keyboard
-        $promo = R::find('promo', ' region_id = :region_id and use_date is null', [':region_id' => $promo_db->region->id]);
-        $ranged_promo = getRangedPromoArray($promo);
+        $promo_upd = R::find('promo', ' region_id = :region_id and use_date is null', [':region_id' => $promo_db->region->id]);
+        $ranged_promo = getRangedPromoArray($promo_upd);
         $kb =
         [
           "keyboard" => [
@@ -238,6 +258,14 @@ while (true) {
           'caption' => 'Постоянная ссылка на промокод: '.$url,
           'reply_markup' => json_encode($kb)
         ]);
+
+        //save order
+        $order = R::dispense('orders');
+        $order->promo = $promo_db;
+        $order->customer = $user;
+        $order->date = date('Y-m-d');
+        $order->cost = $promo->price;
+        R::store($order);
 
       } else {
 
