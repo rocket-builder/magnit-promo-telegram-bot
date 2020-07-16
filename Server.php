@@ -171,6 +171,7 @@ while (true) {
             $sell_promo = getRangedPromoByRange($ranged_promo, $update['message']['text']);
             $price = getRangedPromoPriceByRange($ranged_promo, $update['message']['text']);
             $max_promo = getMaxPromoFromRange($sell_promo);
+            $max_promo['price'] = $price;
 
             $telegram->api('sendMessage', [
               'chat_id' => $update['message']['chat']['id'],
@@ -179,7 +180,7 @@ while (true) {
                   array(
                   "inline_keyboard" => array(array(array(
                   "text" => "Купить",
-                  "callback_data" => $max_promo['value']
+                  "callback_data" => json_encode($max_promo)
                   )))
                   )
               ),
@@ -198,12 +199,60 @@ while (true) {
 
   } elseif (isset($update['callback_query'])) {
 
-    $promo_value = $update['callback_query']['data'];
+    $promo = json_decode($update['callback_query']['data']);
+    if($user->balance >= $promo->price) {
+      $user->balance -= $promo->price;
+      R::store($user);
 
-    $telegram->api('sendMessage', [
-      'chat_id' => $update['message']['chat']['id'],
-      'text' => $promo_value
-    ]);
+      //delete promo from sell
+      $promo_db = R::findOne('promo', ' value = :value and use_date is null', [':value' => $promo->value]);
+
+      if(!is_null($promo_db)) {
+
+        //use promo
+        $promo_db->use_date = date('Y-m-d');
+        R::store($promo_db);
+
+        $url = "https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=".$promo->value;
+
+        //update keyboard
+        $promo = R::find('promo', ' region_id = :region_id and use_date is null', [':region_id' => $promo_db->region->id]);
+        $ranged_promo = getRangedPromoArray($promo);
+        $kb =
+        [
+          "keyboard" => [
+            [[
+              "text" => "Главное меню"
+            ]]
+          ],
+          "resize_keyboard" => true,
+          "one_time_keyboard" => false
+        ];
+        foreach ($ranged_promo as $pr) {
+          array_push($kb['keyboard'],  [[ "text" => $pr['range'] ]]);
+        }
+
+        $telegram->api('sendPhoto', [
+          'chat_id' => $update['callback_query']['from']['id'],
+          'photo' => $url,
+          'caption' => 'Постоянная ссылка на промокод: '.$url,
+          'reply_markup' => json_encode($kb)
+        ]);
+
+      } else {
+
+        $telegram->api('sendMessage', [
+          'chat_id' => $update['callback_query']['from']['id'],
+          'text' => 'Промокод уже продан или еще не существует :('
+        ]);
+      }
+    } else {
+      $telegram->api('sendMessage', [
+        'chat_id' => $update['callback_query']['from']['id'],
+        'text' => 'Недостаточно средств на балансе :('
+      ]);
+    }
+
   }
 }
 ?>
