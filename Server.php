@@ -269,12 +269,11 @@ while (true) {
           array_push($kb['keyboard'],  [[ "text" => $pr['range'] ]]);
         }
 
-
-        $url = "https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=".$promo->value;
+        $url = "https://magnit-server.000webhostapp.com/template.php?value=".$promo->value;
 
         $telegram->api('sendPhoto', [
           'chat_id' => $update['callback_query']['from']['id'],
-          'photo' => $url,
+          'photo' => "https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=".$promo->value,
           'caption' => 'Постоянная ссылка на промокод: '.$url,
           'reply_markup' => json_encode($kb)
         ]);
