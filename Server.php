@@ -252,8 +252,6 @@ while (true) {
         $promo_db->use_date = date('Y-m-d');
         R::store($promo_db);
 
-        $url = "https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=".$promo->value;
-
         //update keyboard
         $promo_upd = R::find('promo', ' region_id = :region_id and use_date is null', [':region_id' => $promo_db->region->id]);
         $ranged_promo = getRangedPromoArray($promo_upd);
@@ -270,6 +268,9 @@ while (true) {
         foreach ($ranged_promo as $pr) {
           array_push($kb['keyboard'],  [[ "text" => $pr['range'] ]]);
         }
+
+
+        $url = "https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=".$promo->value;
 
         $telegram->api('sendPhoto', [
           'chat_id' => $update['callback_query']['from']['id'],
