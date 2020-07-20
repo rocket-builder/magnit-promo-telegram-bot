@@ -1,6 +1,6 @@
 <?php
 require 'Config.php';
-require 'utils/API.php';
+require 'utils/Telegram.php';
 require 'utils/functions.php';
 require 'controllers/connection.php';
 
