@@ -5,6 +5,9 @@ class Config {
     const BOT_NAME = "magnit_promo_bot";
     const BOT_TOKEN = "1205712355:AAE3_QA5NWN2Ze-XE_MUE6Ew95GXBgPBwDQ";
 
+    const PAY_TIMEOUT = 15; // in minutes
+    const DATE_FROMAT = 'Y-m-d H:i:s';
+
     const HELP = "За помощью обращаться к администраторам";
     const ABOUT = "Бот создан командой разработчиков ANT DEV";
     const RULES = '

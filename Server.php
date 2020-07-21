@@ -3,6 +3,7 @@ require 'Config.php';
 require 'utils/Telegram.php';
 require 'utils/functions.php';
 require 'controllers/connection.php';
+require 'vendor/autoload.php';
 
 $user = null;
 
@@ -23,7 +24,7 @@ while (true) {
 
       switch ($update['message']['text']) {
         case '/start':
-
+           $isBill = false;
            $user = R::findOrCreate('customer', ['telegram_id' => $update['message']['from']['id']]);
 
            $telegram->api("sendMessage", array(
@@ -38,7 +39,7 @@ while (true) {
           break;
 
         case 'Купить':
-
+          $isBill = false;
           $regions = R::getAll('select title from region inner join promo on region.id = promo.region_id and promo.use_date is null group by title');
           if(count($regions) > 0) {
 
@@ -71,6 +72,7 @@ while (true) {
           break;
 
         case 'Наличие товаров':
+          $isBill = false;
           $mess = '*'.$update['message']['text']."*\n";
 
           $rgs = R::getAll('select region.id from region inner join promo on region.id = promo.region_id and promo.use_date is null group by region.id');
@@ -95,6 +97,8 @@ while (true) {
 
         case 'Баланс':
 
+          $isBill = false;
+          //TODO ACTUAL USER BALANCE
           $kb =
           [
             "keyboard" => [
@@ -117,14 +121,15 @@ while (true) {
 
         case 'Пополнить баланс':
 
+          $isBill = true;
           $telegram->api('sendMessage', [
             'chat_id' => $update['message']['chat']['id'],
-            'text' => 'Скоро появится'
+            'text' => 'Введите сумму пополненя'
           ]);
           break;
 
         case 'Личный кабинет':
-
+          $isBill = false;
           $user_sum = R::getAll('select sum(cost) as sum from orders where customer_id='.$user->id)[0]['sum'];
           $mess = "➖➖➖➖➖➖➖➖➖➖\nВаш профиль:\n🕶️ Ваш ID: ".$user->telegram_id."\n👏 Ваш никнейм: @".$update['message']['from']['username']."\n🏦 Ваш текущий баланс: ".$user->balance." руб.\n💥 Покупок на сумму: ".$user_sum." руб.\n➖➖➖➖➖➖➖➖➖➖";
 
@@ -135,7 +140,7 @@ while (true) {
           break;
 
         case 'Помощь':
-
+          $isBill = false;
           $telegram->api('sendMessage', [
             'chat_id' => $update['message']['chat']['id'],
             'text' => Config::HELP
@@ -143,7 +148,7 @@ while (true) {
           break;
 
         case 'Правила':
-
+          $isBill = false;
           $telegram->api('sendMessage', [
             'chat_id' => $update['message']['chat']['id'],
             'text' => Config::RULES
@@ -151,7 +156,7 @@ while (true) {
           break;
 
         case 'О боте':
-
+          $isBill = false;
           $telegram->api('sendMessage', [
             'chat_id' => $update['message']['chat']['id'],
             'text' => Config::ABOUT
@@ -159,7 +164,7 @@ while (true) {
           break;
 
         case 'Главное меню':
-
+          $isBill = false;
           $telegram->api("sendMessage", array(
              'chat_id' => $update['message']['chat']['id'],
              'text' => 'Главное меню',
@@ -172,9 +177,8 @@ while (true) {
           break;
 
         default:
-
           //BUY PROMO
-          if(isset($regions) && isRegion($regions, $update['message']['text'])) {
+          if(isset($regions) && isRegion($regions, $update['message']['text']) && !$isBill) {
 
             //buy promo
             $region = R::findOne('region', ' title = :title', [':title' => $update['message']['text']]);
@@ -204,7 +208,7 @@ while (true) {
               'text' => $mess,
               'reply_markup' => json_encode($kb)
             ]);
-          } elseif (isset($ranged_promo) && isRange($ranged_promo, $update['message']['text'])) {
+          } elseif (isset($ranged_promo) && isRange($ranged_promo, $update['message']['text'])  && !$isBill) {
 
             //BUY SINGLE PROMO
             $sell_promo = getRangedPromoByRange($ranged_promo, $update['message']['text']);
@@ -225,10 +229,46 @@ while (true) {
               ),
               'parse_mode' => 'Markdown'
             ]);
-          }
+          // BILL CREATE
+          } elseif (is_numeric($update['message']['text']) && $isBill) {
 
+            $amount = (int)$update['message']['text'];
 
-          else
+            $payment = R::dispense('payment');
+            $payment->amount = $amount;
+            $payment->customer = $user;
+
+            $billId = R::store($payment);
+
+            $billPayments = new Qiwi\Api\BillPayments(R::findOne( 'qiwi' , ' ORDER BY id DESC LIMIT 1')->secret);
+
+            $response = $billPayments->createBill($billId, [
+              'amount' => $payment->amount,
+              'currency' => 'RUB',
+              'comment' => 'Пополнение баланса',
+              'expirationDateTime' => get_time_out_date(Config::PAY_TIMEOUT)
+            ]);
+
+            if($response['status']['value'] == 'WAITING') {
+
+              $telegram->api('sendMessage', [
+                'chat_id' => $update['message']['chat']['id'],
+                'text' => 'Для пополнения баланса нажмите кнопку ниже',
+                'reply_markup' => json_encode([
+                  'inline_keyboard' => [
+                    [['text' => 'Перейти к оплате', 'url' => $response['payUrl']]]
+                  ]
+                ])
+              ]);
+            } else {
+
+              $telegram->api('sendMessage', [
+                'chat_id' => $update['message']['chat']['id'],
+                'text' => 'Что то пошло не так :('
+              ]);
+            }
+
+          } else
             $telegram->api('sendMessage', [
               'chat_id' => $update['message']['chat']['id'],
               'text' => 'Я не знаю такой команды :('
@@ -237,69 +277,76 @@ while (true) {
       }
 
   } elseif (isset($update['callback_query'])) {
-
+    $isBill = false;
     $promo = json_decode($update['callback_query']['data']);
-    if($user->balance >= $promo->price) {
-      $user->balance -= $promo->price;
-      R::store($user);
 
-      //delete promo from sell
-      $promo_db = R::findOne('promo', ' value = :value and use_date is null', [':value' => $promo->value]);
+    if(isset($promo->price)) {
+      if($user->balance >= $promo->price) {
+        $user->balance -= $promo->price;
+        R::store($user);
 
-      if(!is_null($promo_db)) {
+        //delete promo from sell
+        $promo_db = R::findOne('promo', ' value = :value and use_date is null', [':value' => $promo->value]);
 
-        //use promo
-        $promo_db->use_date = date('Y-m-d');
-        R::store($promo_db);
+        if(!is_null($promo_db)) {
 
-        //update keyboard
-        $promo_upd = R::find('promo', ' region_id = :region_id and use_date is null', [':region_id' => $promo_db->region->id]);
-        $ranged_promo = getRangedPromoArray($promo_upd);
-        $kb =
-        [
-          "keyboard" => [
-            [[
-              "text" => "Главное меню"
-            ]]
-          ],
-          "resize_keyboard" => true,
-          "one_time_keyboard" => false
-        ];
-        foreach ($ranged_promo as $pr) {
-          array_push($kb['keyboard'],  [[ "text" => $pr['range'] ]]);
+          //use promo
+          $promo_db->use_date = date('Y-m-d');
+          R::store($promo_db);
+
+          //update keyboard
+          $promo_upd = R::find('promo', ' region_id = :region_id and use_date is null', [':region_id' => $promo_db->region->id]);
+          $ranged_promo = getRangedPromoArray($promo_upd);
+          $kb =
+          [
+            "keyboard" => [
+              [[
+                "text" => "Главное меню"
+              ]]
+            ],
+            "resize_keyboard" => true,
+            "one_time_keyboard" => false
+          ];
+          foreach ($ranged_promo as $pr) {
+            array_push($kb['keyboard'],  [[ "text" => $pr['range'] ]]);
+          }
+
+          $url = "https://magnit-server.000webhostapp.com/template.php?value=".$promo->value;
+
+          $telegram->api('sendPhoto', [
+            'chat_id' => $update['callback_query']['from']['id'],
+            'photo' => "https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=".$promo->value,
+            'caption' => 'Постоянная ссылка на промокод: '.$url,
+            'reply_markup' => json_encode($kb)
+          ]);
+
+          //save order
+          $order = R::dispense('orders');
+          $order->promo = $promo_db;
+          $order->customer = $user;
+          $order->date = date('Y-m-d');
+          $order->cost = $promo->price;
+          R::store($order);
+
+        } else {
+
+          $telegram->api('sendMessage', [
+            'chat_id' => $update['callback_query']['from']['id'],
+            'text' => 'Промокод уже продан или еще не существует :('
+          ]);
         }
-
-        $url = "https://magnit-server.000webhostapp.com/template.php?value=".$promo->value;
-
-        $telegram->api('sendPhoto', [
-          'chat_id' => $update['callback_query']['from']['id'],
-          'photo' => "https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=".$promo->value,
-          'caption' => 'Постоянная ссылка на промокод: '.$url,
-          'reply_markup' => json_encode($kb)
-        ]);
-
-        //save order
-        $order = R::dispense('orders');
-        $order->promo = $promo_db;
-        $order->customer = $user;
-        $order->date = date('Y-m-d');
-        $order->cost = $promo->price;
-        R::store($order);
-
       } else {
-
         $telegram->api('sendMessage', [
           'chat_id' => $update['callback_query']['from']['id'],
-          'text' => 'Промокод уже продан или еще не существует :('
+          'text' => 'Недостаточно средств на балансе :('
         ]);
       }
-    } else {
-      $telegram->api('sendMessage', [
-        'chat_id' => $update['callback_query']['from']['id'],
-        'text' => 'Недостаточно средств на балансе :('
-      ]);
-    }
+    } else
 
+      $telegram->api('sendMessage', [
+        'chat_id' => $update['message']['chat']['id'],
+        'text' => 'Я не знаю такой команды :('
+      ]);
   }
 }
 ?>

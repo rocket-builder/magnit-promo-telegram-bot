@@ -1,4 +1,6 @@
 <?php
+
+//FOR OTHER
 function get_int_lenght($value) {
 
   if(is_int($value)) {
@@ -6,8 +8,21 @@ function get_int_lenght($value) {
   } else
       throw new Exception('Not Integer value.');
 }
+function get_time_out_date($timeout)
+{
+  $date = new DateTime();
+  $date->add(new DateInterval('PT'.Config::PAY_TIMEOUT.'M'));
+  return date('Y-m-d').'T'.$date->format('H').':'.$date->format('i').':'.$date->format('s').'+03:00';
+}
+function get_time_out_date2($timeout)
+{
+  $date = new DateTime();
+  $date->add(new DateInterval('PT'.Config::PAY_TIMEOUT.'M'));
+  return date('Y-m-d').'T'.$date->format('H').$date->format('i');
+}
 
 
+//FOR RANGES/REGIONS
 function isRegion($regions,$data)
 {
   foreach ($regions as $region) {
