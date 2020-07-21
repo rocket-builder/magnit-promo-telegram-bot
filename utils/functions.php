@@ -14,12 +14,6 @@ function get_time_out_date($timeout)
   $date->add(new DateInterval('PT'.Config::PAY_TIMEOUT.'M'));
   return date('Y-m-d').'T'.$date->format('H').':'.$date->format('i').':'.$date->format('s').'+03:00';
 }
-function get_time_out_date2($timeout)
-{
-  $date = new DateTime();
-  $date->add(new DateInterval('PT'.Config::PAY_TIMEOUT.'M'));
-  return date('Y-m-d').'T'.$date->format('H').$date->format('i');
-}
 
 
 //FOR RANGES/REGIONS
